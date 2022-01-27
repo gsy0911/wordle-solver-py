@@ -1,11 +1,27 @@
-from dataclasses import dataclass, field
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum
+
+
+class Color:
+    BLACK = '\033[30m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    RESET = '\033[0m'
 
 
 class Result(Enum):
-    WORD_HIT_POSITION_INCORRECT = auto()
-    WORD_HIT_POSITION_CORRECT = auto()
-    MISSED = auto()
+    MISSED = (0, Color.BLACK)
+    WORD_HIT_POSITION_INCORRECT = (1, Color.YELLOW)
+    WORD_HIT_POSITION_CORRECT = (2, Color.GREEN)
+
+    def __init__(self, id_: str, color: Color):
+        self.id_ = id_
+        self.color = color
+
+    def __repr__(self):
+        return f"{self.color}■{Color.RESET}"
+
+    __str__ = __repr__
 
 
 @dataclass(frozen=True)
@@ -14,6 +30,18 @@ class WordleAnswerResult:
     trial: int
     is_solved: bool
     result: list[Result]
+
+    def get_position_correct(self) -> dict[int, str]:
+        return {
+            idx: z[1] for idx, z in enumerate(zip(self.result, self.answer)) if z[0] == Result.WORD_HIT_POSITION_CORRECT
+        }
+
+    def get_char_correct(self) -> list[str]:
+        return [s for r, s in zip(self.result, self.answer) if r == Result.WORD_HIT_POSITION_INCORRECT]
+
+    def __repr__(self):
+        wordle_display = " ".join([r.__str__() for r in self.result])
+        return f"{wordle_display}: {self.answer}"
 
 
 @dataclass(frozen=True)
@@ -55,3 +83,15 @@ class WordleGame:
         wordle_result = self.wordle.check(answer=answer, trial=len(self.wordle_answer_result_list) + 1)
         self.wordle_answer_result_list.append(wordle_result)
         return wordle_result
+
+    def get_whole_position_correct(self):
+        whole = {}
+        for r in self.wordle_answer_result_list:
+            whole.update(r.get_position_correct())
+        return whole
+
+    def get_whole_char_correct(self) -> list[str]:
+        whole = []
+        for r in self.wordle_answer_result_list:
+            whole.extend(r.get_char_correct())
+        return whole
