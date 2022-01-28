@@ -95,3 +95,6 @@ class WordleGame:
         for r in self.wordle_answer_result_list:
             whole.extend(r.get_char_correct())
         return whole
+
+    def get_answers(self) -> list[str]:
+        return [w.answer for w in self.wordle_answer_result_list]
