@@ -70,6 +70,33 @@ class Solver:
             word_list_candidate.append(set([s for s in word_list if (v in s)]))
         return list(set.intersection(*word_list_candidate))
 
+    @staticmethod
+    def _filter_word_list_by_char_missed(word_list: list, char_missed_list: list):
+        word_list_candidate = []
+        for v in char_missed_list:
+            word_list_candidate.append(set([s for s in word_list if (v not in s)]))
+        return list(set.intersection(*word_list_candidate))
+
+    def _filtered_word_list(self) -> list[str]:
+        position_correct_dict = self.wordle_game.get_whole_position_correct()
+        char_correct_list = self.wordle_game.get_whole_char_correct()
+        char_missed_list = self.wordle_game.get_whole_char_missed()
+        answers = self.wordle_game.get_answers()
+
+        word_list_candidate = self.word_list
+        if char_correct_list:
+            word_list_candidate = self._filter_word_list_by_char_correct(
+                word_list=word_list_candidate, char_correct_list=char_correct_list)
+        if char_missed_list:
+            word_list_candidate = self._filter_word_list_by_char_missed(
+                word_list=word_list_candidate, char_missed_list=char_missed_list)
+        if position_correct_dict:
+            word_list_candidate = self._filter_word_list_by_position_correct(
+                word_list=word_list_candidate, position_correct_dict=position_correct_dict)
+        if answers:
+            word_list_candidate = [word for word in word_list_candidate if (word not in answers)]
+        return word_list_candidate
+
 
 @dataclass
 class RandomSolver(Solver):
@@ -86,19 +113,7 @@ class RandomSolver(Solver):
 @dataclass
 class DictionarySolver(Solver):
     def _word_choice(self) -> str:
-        position_correct_dict = self.wordle_game.get_whole_position_correct()
-        char_correct_list = self.wordle_game.get_whole_char_correct()
-        answers = self.wordle_game.get_answers()
-
-        word_list_candidate = self.word_list
-        if char_correct_list:
-            word_list_candidate = self._filter_word_list_by_char_correct(
-                word_list=word_list_candidate, char_correct_list=char_correct_list)
-        if position_correct_dict:
-            word_list_candidate = self._filter_word_list_by_position_correct(
-                word_list=word_list_candidate, position_correct_dict=position_correct_dict)
-        if answers:
-            word_list_candidate = [word for word in word_list_candidate if (word not in answers)]
+        word_list_candidate = self._filtered_word_list()
 
         length = len(word_list_candidate) - 1
         idx = random.randint(0, length)
@@ -112,19 +127,7 @@ class EntropySolver(Solver):
     """
 
     def _word_choice(self) -> str:
-        position_correct_dict = self.wordle_game.get_whole_position_correct()
-        char_correct_list = self.wordle_game.get_whole_char_correct()
-        answers = self.wordle_game.get_answers()
-
-        word_list_candidate = self.word_list
-        if char_correct_list:
-            word_list_candidate = self._filter_word_list_by_char_correct(
-                word_list=word_list_candidate, char_correct_list=char_correct_list)
-        if position_correct_dict:
-            word_list_candidate = self._filter_word_list_by_position_correct(
-                word_list=word_list_candidate, position_correct_dict=position_correct_dict)
-        if answers:
-            word_list_candidate = [word for word in word_list_candidate if (word not in answers)]
+        word_list_candidate = self._filtered_word_list()
 
         if len(word_list_candidate) == len(self.word_list):
             # initial hand
