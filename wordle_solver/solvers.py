@@ -1,6 +1,14 @@
+from collections import OrderedDict
 from dataclasses import dataclass, field
+from itertools import product
 import random
 import os
+
+from joblib import Parallel, delayed
+import pandas as pd
+import numpy as np
+from scipy.stats import entropy
+
 from wordle_solver.wordle import WordleGame
 
 
@@ -38,7 +46,15 @@ class Solver:
     def _get_word_list() -> list[str]:
         with open(f"{os.path.dirname(__file__)}/words_dic.txt", "r") as f:
             word_list = [s.replace("\n", "") for s in f.readlines()]
+        word_list = [''.join(OrderedDict.fromkeys(s)) for s in word_list]
+        word_list = [s for s in word_list if len(s) == 5]
         return word_list
+
+    @staticmethod
+    def _get_word_df(data: list[str]) -> pd.DataFrame:
+        df_char = pd.DataFrame([list(key) for key in data], columns=range(1, 6))
+        df_char.index = data
+        return df_char
 
     @staticmethod
     def _filter_word_list_by_position_correct(word_list: list, position_correct_dict: dict):
@@ -87,3 +103,62 @@ class DictionarySolver(Solver):
         length = len(word_list_candidate) - 1
         idx = random.randint(0, length)
         return word_list_candidate[idx]
+
+
+@dataclass
+class EntropySolver(Solver):
+    """
+    See Also: https://qiita.com/Ken-ichi_Hironaka/items/dbcf3f4d3c702fb62ec6
+    """
+
+    def _word_choice(self) -> str:
+        position_correct_dict = self.wordle_game.get_whole_position_correct()
+        char_correct_list = self.wordle_game.get_whole_char_correct()
+        answers = self.wordle_game.get_answers()
+
+        word_list_candidate = self.word_list
+        if char_correct_list:
+            word_list_candidate = self._filter_word_list_by_char_correct(
+                word_list=word_list_candidate, char_correct_list=char_correct_list)
+        if position_correct_dict:
+            word_list_candidate = self._filter_word_list_by_position_correct(
+                word_list=word_list_candidate, position_correct_dict=position_correct_dict)
+        if answers:
+            word_list_candidate = [word for word in word_list_candidate if (word not in answers)]
+
+        if len(word_list_candidate) == len(self.word_list):
+            # initial hand
+            return "raise"
+        df_char = self._get_word_df(data=word_list_candidate)
+        df_entropy = self._order_by_entropy(df_char)
+
+        return df_entropy.iloc[0]["word"]
+
+    @staticmethod
+    def _calc_cluster_entropy(df_char: pd.DataFrame, input_word: str):
+        cluster_size = np.zeros(np.repeat(3, 5))
+        green = pd.DataFrame()
+        yellow = pd.DataFrame()
+        gray = pd.DataFrame()
+
+        for pos, char in enumerate(list(input_word)):
+            green[pos] = (df_char[pos + 1] == char)
+            yellow[pos] = (~green[pos]) & (df_char.index.str.contains(char))
+            gray[pos] = (~yellow[pos]) & (~green[pos])
+
+        responses = [gray, yellow, green]
+        for idx in product(range(3), range(3), range(3), range(3), range(3)):
+            tfs = [responses[res][pos] for pos, res in enumerate(idx)]
+            cluster_size[idx] = (tfs[0] & tfs[1] & tfs[2] & tfs[3] & tfs[4]).sum()
+
+        cluster_size = np.int64(cluster_size.ravel())
+        return entropy(cluster_size, base=2)
+
+    @staticmethod
+    def _order_by_entropy(df_temp: pd.DataFrame):
+        data = Parallel(n_jobs=-1)(
+            delayed(EntropySolver._calc_cluster_entropy)(df_temp, index) for index in df_temp.index)
+        df_entropy = pd.DataFrame(data, index=df_temp.index, columns=["entropy"])
+        df_entropy.sort_values("entropy", ascending=False, inplace=True)
+        df_entropy["word"] = df_entropy.index
+        return df_entropy

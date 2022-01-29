@@ -29,3 +29,7 @@ ds.solve()
 # or by manual
 w.check("{your answer}")
 ```
+
+# references
+
+- [Wordleの最初の一手を考える](https://qiita.com/Ken-ichi_Hironaka/items/dbcf3f4d3c702fb62ec6)
