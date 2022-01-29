@@ -39,6 +39,9 @@ class WordleAnswerResult:
     def get_char_correct(self) -> list[str]:
         return [s for r, s in zip(self.result, self.answer) if r == Result.WORD_HIT_POSITION_INCORRECT]
 
+    def get_char_missed(self) -> list[str]:
+        return [s for r, s in zip(self.result, self.answer) if r == Result.MISSED]
+
     def __repr__(self):
         wordle_display = " ".join([r.__str__() for r in self.result])
         return f"{wordle_display}: {self.answer}"
@@ -84,7 +87,7 @@ class WordleGame:
         self.wordle_answer_result_list.append(wordle_result)
         return wordle_result
 
-    def get_whole_position_correct(self):
+    def get_whole_position_correct(self) -> dict:
         whole = {}
         for r in self.wordle_answer_result_list:
             whole.update(r.get_position_correct())
@@ -95,3 +98,12 @@ class WordleGame:
         for r in self.wordle_answer_result_list:
             whole.extend(r.get_char_correct())
         return whole
+
+    def get_whole_char_missed(self) -> list[str]:
+        whole = []
+        for r in self.wordle_answer_result_list:
+            whole.extend(r.get_char_missed())
+        return whole
+
+    def get_answers(self) -> list[str]:
+        return [w.answer for w in self.wordle_answer_result_list]

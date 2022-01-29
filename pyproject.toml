@@ -5,7 +5,10 @@ description = ""
 authors = ["gsy0911 <yoshiki0911@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
+python = ">=3.8,<3.11"
+scipy = "^1.7.3"
+pandas = "^1.4.0"
+joblib = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 jupyterlab = "^2.1.1"
