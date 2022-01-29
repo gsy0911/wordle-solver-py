@@ -13,7 +13,7 @@
 ```python
 
 from wordle_solver.wordle import WordleGame
-from wordle_solver.solvers import RandomSolver, DictionarySolver
+from wordle_solver.solvers import RandomSolver, DictionarySolver, EntropySolver
 
 
 w = WordleGame.of("perky")
@@ -25,6 +25,10 @@ rs.solve()
 # dictionary based solver
 ds = DictionarySolver.of(w)
 ds.solve()
+
+# entropy-based solver
+es = EntropySolver.of(w)
+es.solve()
 
 # or by manual
 w.check("{your answer}")
